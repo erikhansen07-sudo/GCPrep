@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GC Exam Cram</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242736;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: #2d3148;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* SETUP SCREEN */
+  #setup { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .logo { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+  .logo span { color: var(--accent); }
+  .subtitle { color: var(--muted); margin-bottom: 36px; font-size: 0.95rem; }
+  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 560px; }
+  .setup-section { margin-bottom: 28px; }
+  .setup-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; user-select: none; }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+  .chip.cat-active { background: var(--accent2); border-color: var(--accent2); color: white; font-weight: 600; }
+  .start-btn { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 10px; color: white; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity 0.15s; letter-spacing: 0.3px; }
+  .start-btn:hover { opacity: 0.9; }
+  .stats-bar { display: flex; gap: 20px; justify-content: center; margin-bottom: 28px; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* QUIZ SCREEN */
+  #quiz { display: none; flex-direction: column; min-height: 100vh; max-width: 700px; margin: 0 auto; padding: 20px 20px 40px; }
+  .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .q-counter { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  .score-badge { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 0.85rem; font-weight: 700; }
+  .score-badge .correct { color: var(--green); }
+  .score-badge .wrong { color: var(--red); }
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 4px; margin-bottom: 28px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.4s ease; }
+  .cat-tag { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent2); margin-bottom: 10px; }
+  .diff-tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-left: 8px; }
+  .diff-easy { background: #166534; color: #86efac; }
+  .diff-medium { background: #92400e; color: #fcd34d; }
+  .diff-hard { background: #7f1d1d; color: #fca5a5; }
+  .question-text { font-size: 1.15rem; font-weight: 600; line-height: 1.6; margin-bottom: 28px; color: var(--text); }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 18px; text-align: left; color: var(--text); font-size: 0.95rem; cursor: pointer; transition: all 0.15s; line-height: 1.5; display: flex; align-items: flex-start; gap: 12px; }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--surface2); }
+  .option-btn:disabled { cursor: default; }
+  .option-letter { font-weight: 700; min-width: 20px; color: var(--muted); }
+  .option-btn.correct { border-color: var(--green); background: #052e16; }
+  .option-btn.correct .option-letter { color: var(--green); }
+  .option-btn.wrong { border-color: var(--red); background: #3b0707; }
+  .option-btn.wrong .option-letter { color: var(--red); }
+  .option-btn.reveal { border-color: var(--green); background: #052e16; opacity: 0.7; }
+  .feedback-box { margin-top: 20px; padding: 16px 18px; border-radius: 10px; font-size: 0.9rem; line-height: 1.6; }
+  .feedback-correct { background: #052e16; border: 1px solid var(--green); color: #86efac; }
+  .feedback-wrong { background: #3b0707; border: 1px solid var(--red); color: #fca5a5; }
+  .feedback-box strong { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+  .next-btn { margin-top: 20px; width: 100%; padding: 14px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .next-btn:hover { border-color: var(--accent); background: var(--surface); }
+  .quit-btn { background: none; border: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+  .quit-btn:hover { color: var(--text); }
+
+  /* RESULTS SCREEN */
+  #results { display: none; flex-direction: column; align-items: center; min-height: 100vh; max-width: 660px; margin: 0 auto; padding: 40px 20px; }
+  .results-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+  .grade-circle { width: 130px; height: 130px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 24px 0; font-weight: 800; border: 4px solid; }
+  .grade-pass { border-color: var(--green); color: var(--green); }
+  .grade-fail { border-color: var(--red); color: var(--red); }
+  .grade-pct { font-size: 2.4rem; }
+  .grade-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .results-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; margin-bottom: 28px; }
+  .r-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .r-stat-num { font-size: 1.7rem; font-weight: 800; }
+  .r-stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .r-stat.green .r-stat-num { color: var(--green); }
+  .r-stat.red .r-stat-num { color: var(--red); }
+  .r-stat.yellow .r-stat-num { color: var(--yellow); }
+  .cat-breakdown { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .cat-breakdown h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 16px; }
+  .cat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 0.88rem; }
+  .cat-name { width: 160px; flex-shrink: 0; color: var(--text); }
+  .cat-bar-bg { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .cat-pct { width: 38px; text-align: right; font-weight: 700; font-size: 0.82rem; }
+  .results-btns { display: flex; gap: 12px; width: 100%; }
+  .results-btns button { flex: 1; padding: 14px; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: 1.5px solid; transition: opacity 0.15s; }
+  .btn-again { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-menu { background: var(--surface); border-color: var(--border); color: var(--text); }
+  .results-btns button:hover { opacity: 0.85; }
+  .missed-section { width: 100%; margin-bottom: 24px; }
+  .missed-section h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+  .missed-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+  .missed-q { font-size: 0.88rem; margin-bottom: 6px; color: var(--text); }
+  .missed-ans { font-size: 0.82rem; color: var(--green); }
+  .missed-wrong { font-size: 0.82rem; color: var(--red); }
+  .pass-msg { font-size: 0.95rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  /* STREAK */
+  .streak-pill { background: var(--yellow); color: #000; border-radius: 20px; padding: 3px 10px; font-size: 0.75rem; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <div class="logo">GC <span>CRAM</span></div>
+  <div class="subtitle">General Contractor Business &amp; Law Exam Prep</div>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat"><div class="stat-num" id="totalQs">200+</div><div class="stat-label">Questions</div></div>
+    <div class="stat"><div class="stat-num" id="sessionBest">—</div><div class="stat-label">Best Score</div></div>
+    <div class="stat"><div class="stat-num" id="totalRuns">0</div><div class="stat-label">Runs Done</div></div>
+  </div>
+
+  <div class="setup-card">
+    <div class="setup-section">
+      <div class="setup-label">Question Count</div>
+      <div class="chip-group" id="countGroup">
+        <div class="chip" data-val="5">5</div>
+        <div class="chip active" data-val="10">10</div>
+        <div class="chip" data-val="15">15</div>
+        <div class="chip" data-val="20">20</div>
+        <div class="chip" data-val="30">30</div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">Difficulty</div>
+      <div class="chip-group" id="diffGroup">
+        <div class="chip active" data-val="all">All</div>
+        <div class="chip" data-val="easy">Easy</div>
+        <div class="chip" data-val="medium">Medium</div>
+        <div class="chip" data-val="hard">Hard</div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">Category (pick one or more, or All)</div>
+      <div class="chip-group" id="catGroup">
+        <div class="chip cat-active" data-val="all">All Categories</div>
+        <div class="chip" data-val="licensing">Licensing</div>
+        <div class="chip" data-val="estimating">Estimating &amp; Bidding</div>
+        <div class="chip" data-val="liens">Liens</div>
+        <div class="chip" data-val="accounting">Accounting</div>
+        <div class="chip" data-val="bonding">Bonding &amp; Insurance</div>
+        <div class="chip" data-val="labor">Personnel &amp; Labor</div>
+        <div class="chip" data-val="project-mgmt">Project Management</div>
+        <div class="chip" data-val="contracts">Contracts</div>
+        <div class="chip" data-val="business-org">Business Organizations</div>
+        <div class="chip" data-val="tax">Tax</div>
+        <div class="chip" data-val="risk">Risk Management</div>
+        <div class="chip" data-val="safety">Safety</div>
+        <div class="chip" data-val="environmental">Environmental Law</div>
+        <div class="chip" data-val="housing">Housing Regs</div>
+        <div class="chip" data-val="math">Business Math</div>
+        <div class="chip" data-val="quality">Quality Control</div>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startQuiz()">START CRAM SESSION →</button>
+  </div>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="quiz">
+  <div class="quiz-header">
+    <div class="q-counter" id="qCounter">Question 1 / 10</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="streak-pill" id="streakPill" style="display:none">🔥 0</span>
+      <div class="score-badge"><span class="correct" id="scoreCorrect">0</span> / <span class="wrong" id="scoreWrong">0</span></div>
+    </div>
+    <button class="quit-btn" onclick="quitQuiz()">✕ Quit</button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="cat-tag" id="catTag"></div>
+  <div class="question-text" id="questionText"></div>
+  <div class="options" id="optionsDiv"></div>
+  <div id="feedbackDiv"></div>
+  <button class="next-btn" id="nextBtn" style="display:none" onclick="nextQuestion()">Next Question →</button>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results">
+  <div class="results-title" id="resultsTitle">Run Complete!</div>
+  <div class="grade-circle" id="gradeCircle">
+    <div class="grade-pct" id="gradePct">0%</div>
+    <div class="grade-label" id="gradeLabel">Score</div>
+  </div>
+  <div class="pass-msg" id="passMsg"></div>
+  <div class="results-stats">
+    <div class="r-stat green"><div class="r-stat-num" id="resCorrect">0</div><div class="r-stat-label">Correct</div></div>
+    <div class="r-stat red"><div class="r-stat-num" id="resWrong">0</div><div class="r-stat-label">Wrong</div></div>
+    <div class="r-stat yellow"><div class="r-stat-num" id="resStreak">0</div><div class="r-stat-label">Best Streak</div></div>
+  </div>
+  <div class="cat-breakdown" id="catBreakdown"></div>
+  <div class="missed-section" id="missedSection"></div>
+  <div class="results-btns">
+    <button class="btn-again" onclick="startQuiz()">Run Again</button>
+    <button class="btn-menu" onclick="showSetup()">Change Settings</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// QUESTION BANK
+// ============================================================
+// Each question: { id, cat, diff, q, opts: ['A...','B...','C...','D...'], ans: 0-indexed int, exp }
+const ALL_QUESTIONS = [
+
+// ---- LICENSING ----
+{id:1,cat:'licensing',diff:'easy',q:'What is the primary purpose states require a business license in construction contracting?',opts:['To generate revenue for the state','To advertise contractors','To protect the public','As an anti-trust measure'],ans:2,exp:'Business licenses in contracting exist primarily to protect the general public from unqualified or uninsured contractors.'},
+{id:2,cat:'licensing',diff:'medium',q:'Which accurately describes the relationship between a business license and a professional trade license?',opts:['Both are held by a business','A trade license relates to an individual; a business license relates to a business','A business license relates to an individual; a trade license relates to a business','A contractor only needs one or the other'],ans:1,exp:'A trade license is issued to an individual person. A business license covers the general business activities of the company.'},
+{id:3,cat:'licensing',diff:'medium',q:'Which construction company must obtain a Certificate of Authority from the Secretary of State to work in a state?',opts:['Out-of-state contractor','In-state contractor','Contractors on projects above $5,000','Contractors on projects under $5,000'],ans:0,exp:'An out-of-state ("foreign") company must obtain a Certificate of Authority or Foreign Qualification to conduct business in a state where it is not registered.'},
+{id:4,cat:'licensing',diff:'easy',q:'Bidding on a government contract without a license will result in:',opts:['Posting a bond','Waiver of the licensing requirement','Invalidation of the bid','Increased bonding requirements'],ans:2,exp:'A bid submitted by an unlicensed contractor on a government contract will be invalidated. It can also result in inability to recover payment and, in some states, criminal charges.'},
+{id:5,cat:'licensing',diff:'easy',q:'A state allows licensed GCs from a neighboring state to obtain a license without retaking the trade exam. What is this called?',opts:['Renewal','Waiver','Ratification','Reciprocity'],ans:3,exp:'Reciprocity allows a contractor to obtain a license in a new state based on their existing license, typically waiving the trade exam but still requiring the business law exam.'},
+{id:6,cat:'licensing',diff:'easy',q:'Which of the following should be on a written quote sheet?',opts:['Warranty information','Schedule of the work','Subcontractor identifications','Contractor license number'],ans:3,exp:'Most states require the contractor license number to appear on all quotes, advertisements, proposals and contracts.'},
+{id:7,cat:'licensing',diff:'easy',q:'In addition to passing an exam, what is typically required to obtain a contractor\'s license?',opts:['Proof of general liability insurance and/or surety bond','Proof of retainage','Proof of errors and omissions insurance','None of the above'],ans:0,exp:'States commonly require proof of general liability insurance and/or a surety bond as part of the licensing process.'},
+{id:8,cat:'licensing',diff:'medium',q:'Which professional has full access to the Multiple Listing Service (MLS)?',opts:['General Contractor','Real Estate Broker','Home Inspector','All of the above'],ans:1,exp:'Only licensed real estate brokers and their agents have full MLS access. The public only sees limited info shared on third-party sites.'},
+{id:9,cat:'licensing',diff:'easy',q:'A construction professional has "PE" after her name. What does that mean?',opts:['Principal Engineer','Program Electrician','Professional Engineer','None of the above'],ans:2,exp:'PE stands for Professional Engineer. The designation requires passing the FE and PE exams plus documented work experience under a licensed PE.'},
+{id:10,cat:'licensing',diff:'medium',q:'Which of the following is NOT typically a requirement for a contractor license application?',opts:['Proof of net worth or financial statement','Criminal background check','Proof of college degree','Surety bond'],ans:2,exp:'States commonly require financial statements, background checks, and bonding — but a college degree is not a standard licensing requirement.'},
+{id:11,cat:'licensing',diff:'hard',q:'Under reciprocity, a contractor obtaining a license in a new state is typically still required to:',opts:['Pass the trade exam again','Pass the business and law exam','Provide a new background check only','None — the original license transfers automatically'],ans:1,exp:'Even with reciprocity, a contractor must still pass the business and law exam in the new state and go through the application process.'},
+{id:12,cat:'licensing',diff:'medium',q:'A contractor advertises that it is bonded and licensed but the bond has lapsed. This is a violation of:',opts:['OSHA regulations','Federal and state advertising laws','The UCC','Mechanic\'s lien statutes'],ans:1,exp:'State and federal advertising laws (enforced by agencies like the FTC) require that all factual claims in advertising be truthful and substantiated.'},
+
+// ---- ESTIMATING & BIDDING ----
+{id:13,cat:'estimating',diff:'medium',q:'Which task is performed FIRST when carrying out a Quantity Take-Off?',opts:['Measure area/volume for each material','Group and merge similar materials','Determine price for each material','List each type of material shown in construction documents'],ans:3,exp:'The first step of a QTO is listing all materials shown in the construction documents before measuring or pricing anything.'},
+{id:14,cat:'estimating',diff:'easy',q:'Which unit is used to determine the quantity of roofing material needed on a project?',opts:['Cubic volume','Surface area','Unit count','Linear length'],ans:1,exp:'Roofing is a 2D surface — surface area (length × width) is the base formula. Cubic volume is used for 3D tasks like earthwork or concrete.'},
+{id:15,cat:'estimating',diff:'medium',q:'Which is a characteristic of indirect costs on a construction project?',opts:['Indirect costs are not attributable solely to one project','Supplier markup is an example of indirect costs','It is the cost of labor and materials for one project','It includes subcontractor costs'],ans:0,exp:'Indirect costs (overhead, equipment depreciation, labor burden) cannot be solely allocated to one project. They must be spread across all jobs.'},
+{id:16,cat:'estimating',diff:'easy',q:'What is a common mistake in construction bidding?',opts:['Using the lowest subcontractor bid without considering their expertise','Bidding outside the contractor\'s expertise','Underestimating overhead','All of the above'],ans:3,exp:'All three are well-documented bidding mistakes. Using cheap but inexperienced subs, overbidding your capacity, and underestimating overhead all lead to losses.'},
+{id:17,cat:'estimating',diff:'medium',q:'What type of contract typically has a well-defined scope of work and set of plans?',opts:['Unit Price','Lump Sum','Cost Plus','Time & Materials'],ans:1,exp:'Lump Sum contracts require a fully developed scope and detailed quantities. Cost Plus and T&M contracts are used when scope is uncertain.'},
+{id:18,cat:'estimating',diff:'medium',q:'What is a schedule of alternates in a construction bid?',opts:['Best and worst case schedule options','A list of pricing options separate from the base bid in a request for proposal','Alternate time-saving solutions for value engineering','A list of alternate subcontractors set forth in a bid form'],ans:1,exp:'Alternates are pricing options the owner can add or deduct from the base bid price. They let owners evaluate specific items separately.'},
+{id:19,cat:'estimating',diff:'easy',q:'What book is a good resource to confirm historic unit and assembly pricing by region?',opts:['RS Means','International Building Code','American General Contractor Association','American Institute of Architects'],ans:0,exp:'RS Means is the industry-standard database for labor, material and equipment costs by region and building type.'},
+{id:20,cat:'estimating',diff:'medium',q:'A contractor finds a discrepancy between drawings and specifications. What should the contractor do?',opts:['Submit a Request for Information','Assume drawings supersede specs','Assume specs supersede drawings','Call the architect to resolve the conflict'],ans:0,exp:'A written RFI is the correct process — never assume. The response must also be in writing to document the resolution and avoid costly change orders.'},
+{id:21,cat:'estimating',diff:'medium',q:'Which estimates are NOT used during the conceptual phase of project development?',opts:['Rough Order of Magnitude (ROM)','Assemblies Cost Estimating','Cost Indices','Quantity Take-Off (QTO)'],ans:3,exp:'A QTO requires finalized design documents with exact quantities. The conceptual phase only uses high-level estimates where quantities are unknown.'},
+{id:22,cat:'estimating',diff:'easy',q:'What term describes a bid bond offered as assurance to an owner that the bidder will enter into contract at the bid price?',opts:['Bid Shopping','Bid Security','Bid Document','Bid Insurance'],ans:1,exp:'Bid security is a monetary guarantee that discourages contractors from withdrawing bids. If they refuse to sign after winning, they forfeit the security amount.'},
+{id:23,cat:'estimating',diff:'hard',q:'An estimator calculates a hole measuring 3 ft × 9 ft × 10 ft and determines 5 truckloads are needed if a truck holds 2 cubic yards. The answer is:',opts:['Accurate','Short — did not account for swell','Short — did not account for weather impacts','Over — forgot to divide for cubic feet'],ans:1,exp:'3×9×10 = 270 cu ft ÷ 27 = 10 cu yds ÷ 2 = 5 loads. But excavated soil swells (loam ~25%, clay ~40%), so the estimator is short by not accounting for swell.'},
+{id:24,cat:'estimating',diff:'medium',q:'Which is NOT part of the General Conditions portion of an estimate?',opts:['Plumbing Permit','Temporary Power Hookup','Labor Hours for Project Superintendent','Building Permit'],ans:0,exp:'Plumbing permits are part of the plumber\'s sub proposal — not the general conditions. General conditions cover building permits, temp power, and superintendent time.'},
+{id:25,cat:'estimating',diff:'hard',q:'When reviewing subcontractor bids to ensure an accurate final project estimate, what procedure is typically used?',opts:['Comparing sub estimates to each other for this project','Comparing sub estimates to their prior estimate history','Preparing an Order of Magnitude estimate to benchmark all bids','Accepting the bid and adding a 10% contingency'],ans:2,exp:'An OM estimate gives the GC an independent ballpark to validate sub bids against. Comparing only to each other can perpetuate collective errors.'},
+{id:26,cat:'estimating',diff:'hard',q:'In a lump sum contract, the scope changes significantly after signing. How is the price typically adjusted?',opts:['The contractor absorbs the cost','Through a formal change order','By renegotiating the entire contract','Through a supplemental bid process'],ans:1,exp:'Changes in scope under a lump sum contract are handled through formal change orders that adjust the contract price and schedule.'},
+{id:27,cat:'estimating',diff:'medium',q:'What is "bid shopping"?',opts:['Comparing prices from multiple suppliers','Sharing sub bid values with other subs to get lower prices (unethical)','Submitting bids to multiple owners simultaneously','Reviewing bids after the deadline'],ans:1,exp:'Bid shopping is an unethical practice where a GC shares subcontractor bids with competing subs to drive prices down. It violates professional ethics codes.'},
+
+// ---- LIENS ----
+{id:28,cat:'liens',diff:'easy',q:'If a subcontractor on a construction project is not paid, what type of lien can enforce payment?',opts:['UCC lien','Mechanic\'s lien','Mortgage lien','Tax lien'],ans:1,exp:'Mechanic\'s liens (also called construction liens) are used when contractors, subcontractors, or suppliers are unpaid for improvements to real property.'},
+{id:29,cat:'liens',diff:'easy',q:'If a contractor files a lien claim arising from a construction contract, what is the lien filed against?',opts:['Owner\'s real estate that was improved','Owner personally','The Prime Contractor','All assets of the owner'],ans:0,exp:'A mechanic\'s lien is specific to the improved property — it does not attach to the owner\'s other assets (unlike a judgment lien from a civil lawsuit).'},
+{id:30,cat:'liens',diff:'medium',q:'How is a mechanic\'s lien enforced?',opts:['Specific performance','Monetary damages','Retainage withholding','Foreclosure action'],ans:3,exp:'Since mechanic\'s liens are against real property, they are enforced through a foreclosure action — the lienholder forces the sale of the property to satisfy the debt.'},
+{id:31,cat:'liens',diff:'hard',q:'In a foreclosure sale with multiple lien types, what is the correct priority order (left = first paid)?',opts:['Mechanic\'s liens, mortgage liens, tax liens','Mortgage liens, mechanic\'s liens, tax liens','Tax liens, mortgage liens, mechanic\'s liens','Tax liens, mechanic\'s liens, mortgage liens'],ans:2,exp:'Tax liens have first priority, then mortgage liens, then mechanic\'s liens. The court distributes foreclosure proceeds in this order.'},
+{id:32,cat:'liens',diff:'medium',q:'How is priority determined between multiple mechanic\'s liens on the same project?',opts:['First-to-file gets priority','All are given equal priority','Last-to-file gets priority','Both a and b (depends on state law)'],ans:3,exp:'States differ: some use first-to-file (chronological order), others use equal priority (pro-rata shares). Both systems exist depending on the state.'},
+{id:33,cat:'liens',diff:'easy',q:'What is the basic legal effect of a lien waiver?',opts:['Gives up rights the person may have','Transfers rights from one person to another','Creates new rights for the person giving it','Has no legal effect'],ans:0,exp:'A lien waiver is a voluntary relinquishment of lien rights. When a contractor signs one after being paid, they give up the right to file a lien for that amount.'},
+{id:34,cat:'liens',diff:'medium',q:'What document should a subcontractor provide in exchange for FINAL PAYMENT to protect the owner and GC from future lien filings?',opts:['Conditional lien release','Lien waiver','Unconditional lien release','Partial lien waiver'],ans:2,exp:'An unconditional lien release is provided at final payment — it releases all claims on the project. It is effective the moment it is signed.'},
+{id:35,cat:'liens',diff:'medium',q:'What should a GC require from all subcontractors with each PROGRESS PAY APPLICATION?',opts:['Unconditional lien release','Lien waiver','Partial (conditional) lien waiver','Conditional lien release upon final payment'],ans:2,exp:'A partial/conditional lien waiver covers only the work billed in the current pay app and becomes effective only upon payment actually being received.'},
+{id:36,cat:'liens',diff:'easy',q:'What is the consequence of a contractor signing a lien waiver after receiving payment?',opts:['The contractor still has a lien against the property','The contractor can no longer file a lien for that amount','The owner can file a lawsuit on the paid work','The owner can require the contractor to complete work'],ans:1,exp:'By signing a lien waiver, the contractor gives up the right to file a lien for the amounts covered by that waiver.'},
+{id:37,cat:'liens',diff:'easy',q:'Which stakeholders on a construction project can file a mechanic\'s lien to get paid?',opts:['Contractors only','Suppliers only','Laborers only','All of the above (contractors, suppliers, and laborers)'],ans:3,exp:'Any party who provides labor, materials, or services to improve real property — including contractors, suppliers, and laborers — can file a mechanic\'s lien.'},
+{id:38,cat:'liens',diff:'medium',q:'When filing a mechanic\'s lien, what must a contractor show was sent to the owner first?',opts:['Lien waiver','Preliminary notice only','Notice of Intent to Lien only','Both preliminary notice and Notice of Intent to Lien'],ans:3,exp:'Most states require both a preliminary notice (sent when work starts) and a Notice of Intent to Lien before a mechanic\'s lien can be filed.'},
+{id:39,cat:'liens',diff:'hard',q:'What is the key difference between conditional and unconditional lien waivers?',opts:['Unconditional waivers are effective instantly upon signing; conditional waivers become effective only when payment is received','Conditional waivers are effective instantly; unconditional waivers require court approval','Conditional covers materials; unconditional covers labor','There is no legal difference'],ans:0,exp:'Unconditional waivers are dangerous to sign before payment — they are immediately enforceable. Conditional waivers only take effect upon receipt of payment.'},
+{id:40,cat:'liens',diff:'medium',q:'In most states, "no lien clauses" in construction contracts are:',opts:['Enforceable','Unenforceable','Binding','Executory'],ans:1,exp:'Most states do not permit "no lien clauses" — they are considered against public policy that protects contractors\' right to payment. Only a few states (e.g., CO, NE) expressly allow them.'},
+{id:41,cat:'liens',diff:'easy',q:'What is a lien release used for?',opts:['To file a mechanic\'s lien','To prevent a lien from being filed','To cancel a lien that has already been filed','To release a judgment against a contractor'],ans:2,exp:'A lien release cancels a previously filed lien and is recorded in the property\'s public records showing the lien has been satisfied.'},
+{id:42,cat:'liens',diff:'medium',q:'What should the face amount on a mechanic\'s lien claim include?',opts:['Cost of labor and materials only','Emotional distress damages','Attorney\'s fees','All of the above'],ans:0,exp:'A mechanic\'s lien face amount must be limited to amounts due for actual work and materials. Attorney\'s fees can be added by the court later if the lien is upheld.'},
+
+// ---- ACCOUNTING ----
+{id:43,cat:'accounting',diff:'easy',q:'What are mobilization costs in construction?',opts:['Ongoing office overhead costs','Indirect costs not tied to one project','Initial expenditures to move resources to the jobsite before progress payments begin','Pre-paid retainer for architects'],ans:2,exp:'Mobilization costs are the upfront costs of moving equipment and personnel to a job site — required before qualifying for progress payments.'},
+{id:44,cat:'accounting',diff:'medium',q:'How is retainage used in construction billings?',opts:['Upfront payment to ensure owner compliance','Pre-paid retainer for architects during design','Part of contract price held back until work is substantially complete','Pre-payment by owner for materials'],ans:2,exp:'Retainage (typically 5-10%) is withheld from each progress payment to ensure the contractor fulfills all obligations. It is released at final completion.'},
+{id:45,cat:'accounting',diff:'easy',q:'Where are a company\'s daily financial transactions first recorded?',opts:['Accounts receivable','Financial statements','General ledger','Journals'],ans:3,exp:'Journals are the book of original entry. Transactions are first recorded in journals, which are then used to create the general ledger and financial statements.'},
+{id:46,cat:'accounting',diff:'medium',q:'Which journal is used when the transaction does not fit any other standard classification?',opts:['Cash Receipts Journal','Purchase Journal','Miscellaneous Journal','General Journal'],ans:3,exp:'The General Journal captures transactions that cannot be recorded in specialized journals (like equipment purchased on credit, which has no dedicated journal).'},
+{id:47,cat:'accounting',diff:'medium',q:'What type of journal records loan payments and payments on vendor invoices?',opts:['Cash Receipts and Sales Journal','Purchases Journal','Cash Disbursements Journal','General Journal'],ans:2,exp:'The Cash Disbursements Journal records all cash paid out — loan payments, vendor invoices, payroll, rent, etc.'},
+{id:48,cat:'accounting',diff:'hard',q:'If a company purchases a new backhoe for $20,000 with a loan, an asset account is debited $20,000. What other account is affected?',opts:['Expense account','Liability account','Equity account','No other account is needed'],ans:1,exp:'In double-entry accounting, a loan creates both an asset (the equipment) and a liability (the loan). Both accounts must reflect the transaction.'},
+{id:49,cat:'accounting',diff:'easy',q:'What is the basic equation underlying a balance sheet?',opts:['Assets = Liabilities − Equity','Liabilities = Assets + Equity','Equity = Assets − Liabilities','Assets = Liabilities + Equity'],ans:3,exp:'The fundamental accounting equation is Assets = Liabilities + Equity. This must always balance.'},
+{id:50,cat:'accounting',diff:'medium',q:'Which financial statement reports assets, liabilities, and equity at a specific point in time?',opts:['Income Statement','Cash Flow Statement','Balance Sheet','Statement of Changes in Equity'],ans:2,exp:'The Balance Sheet (also called Statement of Financial Position) gives a snapshot of a company\'s financial health at one moment in time.'},
+{id:51,cat:'accounting',diff:'easy',q:'What is a Chart of Accounts?',opts:['A numbered index organizing all five account types in the general ledger','A list of all assets owned by a company','A chart showing account balances over time','A ledger for tracking contractor payments'],ans:0,exp:'A Chart of Accounts is the organizational framework for the general ledger, assigning identification codes to all accounts (assets, liabilities, equity, revenue, expenses).'},
+{id:52,cat:'accounting',diff:'medium',q:'What does the income statement report?',opts:['Assets and liabilities at a point in time','Revenue and expenses over a period to show net profit or loss','Cash inflows and outflows over a period','Changes in owner\'s equity over a period'],ans:1,exp:'The Income Statement (Profit & Loss) shows revenues minus expenses over a reporting period to determine net income or net loss.'},
+{id:53,cat:'accounting',diff:'hard',q:'What is "overbilling" in construction accounting?',opts:['Billing more than the work completed to date','Billing for materials before they are delivered','Billing the owner before a pay app is submitted','Charging more than the contract price'],ans:0,exp:'Overbilling occurs when a contractor bills more than the percentage of work actually completed. It can create cash flow distortions and is flagged during audits.'},
+{id:54,cat:'accounting',diff:'medium',q:'What does "underbilling" indicate on a construction project?',opts:['The owner has withheld payments','The contractor has completed more work than it has billed for','The project is over budget','The subcontractors have been overbilled'],ans:1,exp:'Underbilling (costs in excess of billings) means the contractor has completed more work than they\'ve invoiced — essentially a receivable owed by the owner.'},
+
+// ---- BONDING & INSURANCE ----
+{id:55,cat:'bonding',diff:'easy',q:'What is the purpose of a performance bond?',opts:['To guarantee the contractor will submit a bid','To guarantee the contractor will complete the contract per its terms','To cover worker injuries on the job','To insure against property damage claims'],ans:1,exp:'A performance bond guarantees that the contractor will fulfill the contract. If the contractor defaults, the surety finds a replacement or compensates the owner.'},
+{id:56,cat:'bonding',diff:'easy',q:'What is a payment bond?',opts:['A bond guaranteeing the owner will pay the contractor','A bond guaranteeing the contractor will pay subcontractors and suppliers','A bond for bid security','A bond covering workers\' compensation'],ans:1,exp:'A payment bond protects subcontractors and suppliers — it ensures they will be paid even if the general contractor defaults.'},
+{id:57,cat:'bonding',diff:'medium',q:'Who are the three parties to a surety bond?',opts:['Owner, contractor, architect','Principal (contractor), obligee (owner/beneficiary), surety (insurer)','Contractor, subcontractor, bonding company','Lender, borrower, guarantor'],ans:1,exp:'The principal (contractor) obtains the bond from the surety (insurance company) to guarantee obligations to the obligee (owner or project beneficiary).'},
+{id:58,cat:'bonding',diff:'medium',q:'What does Builder\'s Risk insurance cover?',opts:['Worker injuries during construction','Scheduled progress payments','Materials, equipment and the building structure while under construction','All of the above'],ans:2,exp:'Builder\'s Risk insurance covers the physical structure and materials against fire, theft, vandalism, and weather while the project is under construction.'},
+{id:59,cat:'bonding',diff:'easy',q:'What type of insurance protects a contractor against claims of personal injury or property damage from business operations?',opts:['Workers\' Compensation','Builder\'s Risk','General Liability','Errors & Omissions'],ans:2,exp:'General Liability Insurance is the fundamental coverage protecting against third-party bodily injury and property damage claims arising from the contractor\'s operations.'},
+{id:60,cat:'bonding',diff:'medium',q:'What does Workers\' Compensation insurance cover?',opts:['Third-party property damage on the job site','Medical costs and lost wages for employees injured on the job','Damage to the project during construction','Legal costs from contract disputes'],ans:1,exp:'Workers\' Compensation covers medical expenses and lost wages for employees injured on the job and protects the employer from most employee injury lawsuits.'},
+{id:61,cat:'bonding',diff:'hard',q:'What is an "Additional Insured" endorsement on a general liability policy?',opts:['It adds a new contractor to the policy as the primary insured','It extends coverage to another party (e.g., the owner) under the contractor\'s policy','It increases the coverage limits of the policy','It covers subcontractors under the GC\'s policy'],ans:1,exp:'An Additional Insured endorsement extends the contractor\'s GL coverage to protect the owner or other specified parties against claims arising from the contractor\'s work.'},
+{id:62,cat:'bonding',diff:'medium',q:'What is the purpose of a bid bond?',opts:['To guarantee payment to subs','To guarantee the bidder will sign the contract at the bid price if awarded','To cover cost overruns on the project','To guarantee project completion'],ans:1,exp:'A bid bond (bid security) assures the owner that the winning bidder will enter into the contract at the bid price. If they refuse, the surety compensates the owner for the difference.'},
+{id:63,cat:'bonding',diff:'medium',q:'An owner requires a contractor to name the owner as an additional insured. What is the primary benefit to the owner?',opts:['The owner can file insurance claims directly under the contractor\'s policy','The owner gets a discount on their own insurance','The contractor bears all legal costs','The contractor\'s license is guaranteed'],ans:0,exp:'Being named as additional insured allows the owner to be protected directly under the contractor\'s general liability policy for covered claims.'},
+
+// ---- PERSONNEL & LABOR ----
+{id:64,cat:'labor',diff:'easy',q:'What is the Davis-Bacon Act?',opts:['A federal law setting minimum OSHA safety standards','A federal law requiring prevailing wages on federal construction projects','A state law regulating contractor licensing','A federal anti-discrimination employment law'],ans:1,exp:'The Davis-Bacon Act requires contractors on federal construction contracts exceeding $2,000 to pay workers the local prevailing wage and fringe benefits.'},
+{id:65,cat:'labor',diff:'medium',q:'What does Title VII of the Civil Rights Act of 1964 protect employees from?',opts:['Wage discrimination only','Discrimination based on race, color, religion, sex, or national origin','Age discrimination','Disability discrimination'],ans:1,exp:'Title VII prohibits employment discrimination based on race, color, religion, sex, or national origin. Recent Supreme Court rulings extended it to gender identity and sexual orientation.'},
+{id:66,cat:'labor',diff:'medium',q:'The Age Discrimination in Employment Act (ADEA) protects workers who are:',opts:['18 years of age or older','25 years of age or older','40 years of age or older','Any age, in all circumstances'],ans:2,exp:'The ADEA protects employees and job applicants who are 40 or older from discrimination in hiring, promotion, compensation, and discharge.'},
+{id:67,cat:'labor',diff:'easy',q:'What is the difference between an employee and an independent contractor?',opts:['Employees receive benefits; independent contractors do not','The employer controls how and when an employee works; an independent contractor controls their own work','Employees sign contracts; independent contractors work verbally','There is no legal distinction'],ans:1,exp:'The key distinction is control — an employer directs and controls how an employee works. An independent contractor sets their own methods and schedule.'},
+{id:68,cat:'labor',diff:'medium',q:'What is a "sub-journey" or apprenticeship program in construction?',opts:['A program where workers are permanently classified as helpers','A formal training program where workers learn a trade under supervision while earning wages','An OSHA safety certification program','A union collective bargaining agreement'],ans:1,exp:'Apprenticeship programs are federally or state-registered training programs where workers learn a trade through on-the-job training under a journeyman, typically taking 3-5 years.'},
+{id:69,cat:'labor',diff:'hard',q:'Which federal law requires employers to retain employee medical and exposure records for 30 years?',opts:['OSHA Hazard Communication Standard','OSHA Recordkeeping Standard (29 CFR 1904)','OSHA Access to Employee Exposure and Medical Records (29 CFR 1910.1020)','FLSA recordkeeping requirements'],ans:2,exp:'29 CFR 1910.1020 requires employers to maintain employee medical and exposure records for 30 years, ensuring long-term health monitoring for hazardous exposures.'},
+{id:70,cat:'labor',diff:'medium',q:'What is a "prevailing wage" requirement?',opts:['The minimum wage set by the state','The wage rate and fringe benefits paid to the majority of workers in a given trade and locality','The average wage across all construction trades in the country','The union wage rate regardless of location'],ans:1,exp:'Prevailing wage is determined by the DOL for each trade in each locality and represents the dominant wage paid locally. Required on most public construction projects.'},
+
+// ---- PROJECT MANAGEMENT ----
+{id:71,cat:'project-mgmt',diff:'easy',q:'What are the four main stages of a construction project?',opts:['Design, bidding, construction, occupancy','Planning, pre-construction, construction, close-out','Conceptual, schematic, design development, construction documents','Feasibility, design, permit, build'],ans:1,exp:'The four stages are: Planning (conceptual/economic decisions), Pre-construction (design/engineering), Construction (execution), and Close-out (punch list, owner turnover).'},
+{id:72,cat:'project-mgmt',diff:'medium',q:'What is the Critical Path Method (CPM)?',opts:['A method to track budget variances','A scheduling technique identifying the longest sequence of dependent activities that determines overall project duration','A quality control inspection process','A method to prioritize safety hazards'],ans:1,exp:'CPM identifies the critical path — the longest chain of dependent tasks. Any delay on the critical path directly delays project completion.'},
+{id:73,cat:'project-mgmt',diff:'medium',q:'What is "float" (or "slack") in a project schedule?',opts:['Extra budget reserved for contingencies','The amount of time a task can be delayed without delaying the project completion','The lead time for material deliveries','The time between design and construction phases'],ans:1,exp:'Float is the scheduling flexibility available for non-critical tasks. Tasks on the critical path have zero float — any delay affects the project end date.'},
+{id:74,cat:'project-mgmt',diff:'medium',q:'What is a "punch list"?',opts:['A list of all subcontractors on a project','A list of items that are deficient or incomplete that must be resolved before project close-out','A daily log of worker hours','A list of change orders submitted to the owner'],ans:1,exp:'At project completion, the owner and/or architect inspect the work and document any deficiencies in a punch list. All items must be resolved before final payment.'},
+{id:75,cat:'project-mgmt',diff:'medium',q:'What is value engineering (VE)?',opts:['Calculating the ROI of a construction project for the owner','An intentional process to achieve essential project functions at the lowest possible cost','A method for tracking change order costs','A peer review of engineering drawings'],ans:1,exp:'VE is a structured review of design features, systems, equipment, and materials to identify cost savings while maintaining required functionality.'},
+{id:76,cat:'project-mgmt',diff:'easy',q:'What is a Request for Information (RFI) in construction?',opts:['A request by the owner to bid on a new project','A written request to the design team for clarification on drawings or specifications','A request by the contractor for additional compensation','A form used to track material deliveries'],ans:1,exp:'An RFI is a formal written request submitted by the contractor to the owner or architect seeking clarification, missing information, or resolution of design conflicts.'},
+{id:77,cat:'project-mgmt',diff:'medium',q:'What is Building Information Modeling (BIM)?',opts:['A 2D drafting software for construction documents','A 3D intelligent modeling platform that integrates cost, schedule, and coordination data','A project management software for scheduling','A database for tracking material costs'],ans:1,exp:'BIM is 3D intelligent modeling software that supports interference detection, construction sequencing, cost estimating, and collaborative project delivery across all phases.'},
+{id:78,cat:'project-mgmt',diff:'hard',q:'What is Integrated Project Delivery (IPD)?',opts:['A delivery method where the owner does all design in-house','A method involving a joint contract between owner, architect, and CM, with shared risk','A design-bid-build variant for public projects','A method where the GC controls all design decisions'],ans:1,exp:'IPD uses a tripartite contract between owner, architect, and construction manager that aligns incentives and shares risk. All parties are involved from early design through construction.'},
+{id:79,cat:'project-mgmt',diff:'easy',q:'What is a "Notice to Proceed"?',opts:['A safety notification issued to workers before excavation','A formal notification from the owner to the contractor authorizing the start of work','A notice filed with the county when construction begins','A notification to subcontractors about payment schedules'],ans:1,exp:'A Notice to Proceed (NTP) informs the contractor that performance under the contract should begin. It establishes the official start date for the project schedule.'},
+{id:80,cat:'project-mgmt',diff:'medium',q:'What is the Project Management Triangle (Triple Constraint)?',opts:['Cost, quality, and materials','Scope, time, and cost (changes to one affect the others to maintain quality)','Design, construction, and close-out','Owner, contractor, and architect'],ans:1,exp:'The Triple Constraint model holds that quality is constrained by scope, time, and cost. Trading off any one constraint forces adjustments to the others.'},
+{id:81,cat:'project-mgmt',diff:'medium',q:'Which software is an industry standard for project scheduling using Gantt charts and activity sequencing?',opts:['AutoCAD','Primavera P6','PlanSwift','Procore'],ans:1,exp:'Primavera P6 is the industry-standard scheduling software for large construction projects. Microsoft Project is also widely used for smaller projects.'},
+{id:82,cat:'project-mgmt',diff:'medium',q:'What is "just-in-time" delivery in construction?',opts:['Delivering materials as early as possible to avoid shortages','Delivering materials precisely when needed to reduce on-site storage and inventory costs','A method for scheduling subcontractors','An accelerated delivery method using prefabrication'],ans:1,exp:'"Just-in-time" delivery minimizes site storage costs and reduces risk of material damage or theft by timing deliveries to coincide with installation.'},
+{id:83,cat:'project-mgmt',diff:'hard',q:'What is an Operations & Maintenance (O&M) manual?',opts:['A safety manual prepared by OSHA for each project','A comprehensive document package covering building systems and equipment to help the owner maintain the facility','A project schedule baseline document','A warranty document from the GC'],ans:1,exp:'An O&M manual is assembled by the GC at project close-out and contains as-built drawings, warranties, equipment operation procedures, maintenance schedules, and emergency procedures.'},
+{id:84,cat:'project-mgmt',diff:'medium',q:'What is "commissioning" in construction?',opts:['The process of awarding a construction contract','A close-out process to verify building systems function properly and train the owner on operations','An inspection by the building department before a permit is issued','A method of accelerating construction progress'],ans:1,exp:'Commissioning is a close-out process that verifies all building systems operate as designed, trains the owner\'s staff, and documents everything in an O&M manual.'},
+
+// ---- CONTRACTS ----
+{id:85,cat:'contracts',diff:'medium',q:'What are the elements required to form a binding contract?',opts:['Offer, acceptance, consideration, and capacity','Offer, acceptance, and a written document','Offer, consideration, and notarization','A signed document and payment'],ans:0,exp:'A valid contract requires: offer, acceptance, consideration (something of value exchanged by both parties), and legal capacity of the parties.'},
+{id:86,cat:'contracts',diff:'medium',q:'What is "consideration" in contract law?',opts:['The deliberation period before signing a contract','The benefit each party receives in a bargained-for exchange','The total price of the contract','A clause requiring careful consideration of changes'],ans:1,exp:'Consideration is what each party gives and receives in a contract — money, a promise to act, or a promise to refrain from acting. Both parties must receive consideration for a contract to be valid.'},
+{id:87,cat:'contracts',diff:'medium',q:'What is a counteroffer in contract formation?',opts:['An offer made simultaneously by both parties','A response that rejects and replaces the original offer','An acceptance with minor modifications','A written confirmation of the original offer'],ans:1,exp:'A counteroffer rejects the original offer and substitutes new terms. No contract is formed until an offer is accepted without modification.'},
+{id:88,cat:'contracts',diff:'hard',q:'When is a written estimate considered a legally binding offer?',opts:['Always — any written estimate can be accepted to form a contract','Never — estimates are always informational only','Only when it includes language for the owner to sign/accept or a deadline for acceptance','Only when it is notarized'],ans:2,exp:'A written estimate is typically informational, not an offer. However, if it includes a signature line for acceptance or a deadline to accept, a court may find it to be a binding offer.'},
+{id:89,cat:'contracts',diff:'medium',q:'What is a "material breach" of contract vs. a "minor breach"?',opts:['Material breach allows termination; minor breach only allows deduction from payment','Minor breach allows termination; material breach only allows damages','Both allow termination of the contract','Neither allows the non-breaching party to suspend work'],ans:0,exp:'A material (substantial) breach allows the non-breaching party to suspend or terminate. A minor breach (e.g., 95% complete) does not allow termination — only a pro-rata deduction.'},
+{id:90,cat:'contracts',diff:'medium',q:'What is a "scope of work" in a construction contract?',opts:['The general terms governing the contractor-owner relationship','A description of the work to be performed under the contract','The schedule of payment milestones','The list of approved subcontractors'],ans:1,exp:'The scope of work defines exactly what the contractor is required to do. It may include milestones, deliverables, and specifics about methods and materials.'},
+{id:91,cat:'contracts',diff:'easy',q:'What is a warranty in a construction contract?',opts:['A promise by the owner to pay on time','A promise by the contractor that work and materials will meet specified standards and be free of defects','A guarantee by the surety that the project will be completed','An insurance policy for the project'],ans:1,exp:'A warranty is the contractor\'s promise that their work meets contract standards and is defect-free. Express warranties are written in the contract; implied warranties exist by law.'},
+{id:92,cat:'contracts',diff:'hard',q:'What is the AIA G702 form used for?',opts:['Change orders','Application for payment (pay request)','Lien waivers','Contractor\'s affidavit for release of liens'],ans:1,exp:'The G702 is the AIA\'s Application and Certificate for Payment form — the most widely used pay request form in construction. It is submitted with the G703 schedule of values breakdown.'},
+{id:93,cat:'contracts',diff:'hard',q:'What is the AIA G701 form used for?',opts:['Payment applications','Change orders','Lien releases','Subcontract agreements'],ans:1,exp:'The G701 is the AIA Change Order form. It documents approved changes in scope, price, and schedule and is often accompanied by the G703 as backup.'},
+{id:94,cat:'contracts',diff:'medium',q:'What is a Schedule of Values (SOV)?',opts:['A list of unit prices for change orders','A breakdown of contract costs used for billing and budget tracking','A list of alternates and their prices','A schedule of material delivery milestones'],ans:1,exp:'The SOV breaks the total contract price into line items corresponding to work phases or CSI divisions. It is submitted before the first billing and is the basis for all progress payments.'},
+{id:95,cat:'contracts',diff:'medium',q:'What is a "prompt payment law"?',opts:['A law requiring contractors to pay suppliers within 30 days','Federal and state laws requiring timely payment to contractors and subcontractors, with interest/penalties for late payment','A law governing how quickly an owner must approve a pay application','An OSHA regulation about payroll timing'],ans:1,exp:'Prompt payment laws protect GCs and subs by mandating payment timelines — e.g., federal law requires GCs to pay subs within 7 days of receiving their own payment on federal projects.'},
+{id:96,cat:'contracts',diff:'easy',q:'What is a "change order"?',opts:['A request by a subcontractor to change materials','A formal document modifying the original contract\'s scope, price, or schedule','An owner\'s instruction to stop work','A request to substitute approved materials'],ans:1,exp:'A change order is a formal written agreement between owner and contractor modifying the contract. It is the only proper way to adjust contract price or schedule after signing.'},
+{id:97,cat:'contracts',diff:'medium',q:'In the CSI MasterFormat, which division covers special construction?',opts:['Division 01 — General Requirements','Division 13 — Special Construction','Division 03 — Concrete','Division 26 — Electrical'],ans:1,exp:'CSI MasterFormat Division 13 covers Special Construction. The MasterFormat is the standard organizational system for construction specifications.'},
+
+// ---- BUSINESS ORGANIZATIONS ----
+{id:98,cat:'business-org',diff:'easy',q:'What does "limited liability" mean for an LLC or corporation owner?',opts:['Owners will never be personally liable for anything','Owners\' personal assets are generally protected from the company\'s business debts','The company\'s liability is limited to the owner\'s personal assets','Owners share liability equally with all creditors'],ans:1,exp:'Limited liability means the company\'s debts stay with the company — owners\' personal assets (home, car, savings) are generally shielded from business creditors.'},
+{id:99,cat:'business-org',diff:'medium',q:'Which business structure offers limited liability with minimal corporate formality (no shareholder meetings)?',opts:['LLC (Limited Liability Company)','C Corporation','S Corporation','General Partnership'],ans:0,exp:'An LLC offers limited liability while avoiding most corporate formalities. It can be taxed as a sole proprietor, partnership, or corporation depending on elections made.'},
+{id:100,cat:'business-org',diff:'medium',q:'Three owners work daily in a home renovation business and share profits 50/25/25 per a written agreement. What type of entity is this?',opts:['Limited Partnership','General Partnership','Limited Liability Partnership','Sole Proprietorship'],ans:1,exp:'When all owners actively work in the business and share profits/losses per a partnership agreement, it is a General Partnership. All partners have unlimited personal liability.'},
+{id:101,cat:'business-org',diff:'hard',q:'What is the key difference between an S Corporation and a C Corporation for a small construction company?',opts:['S Corps have limited liability; C Corps do not','S Corps pass income/losses through to owners\' personal taxes avoiding double taxation; C Corps pay corporate tax first','S Corps can have unlimited shareholders; C Corps are limited to 100','S Corps are only for licensed professionals'],ans:1,exp:'S Corps avoid double taxation (corporate tax + dividend tax) by passing income directly to shareholders\' personal returns. C Corps pay corporate tax on profits, then shareholders pay taxes on dividends.'},
+{id:102,cat:'business-org',diff:'easy',q:'What is a sole proprietorship?',opts:['A business with one owner and at least one employee','A business owned and operated by one person with no legal separation between owner and business','A limited liability company with one member','A corporation with only one shareholder'],ans:1,exp:'A sole proprietorship is the simplest business form — one person owns and runs the business. There is no legal separation, so the owner has unlimited personal liability for all business debts.'},
+{id:103,cat:'business-org',diff:'medium',q:'What is a "piercing the corporate veil" situation?',opts:['When a corporation dissolves voluntarily','When a court holds owners personally liable because they failed to maintain proper separation between personal and business finances','When a company is acquired by another corporation','When minority shareholders sue majority shareholders'],ans:1,exp:'Courts can "pierce the veil" and hold owners personally liable when they commingle personal and business funds, undercapitalize the company, or use the company fraudulently.'},
+
+// ---- TAX ----
+{id:104,cat:'tax',diff:'easy',q:'What do self-employed persons file quarterly with the IRS and state taxing authorities?',opts:['Depreciation schedules','Schedule C','Estimated tax payments','Form W-2'],ans:2,exp:'Self-employed persons must make quarterly estimated tax payments to avoid underpayment penalties. These cover income tax and self-employment tax.'},
+{id:105,cat:'tax',diff:'easy',q:'What tax do independent contractors pay to the IRS in place of Social Security and Medicare taxes?',opts:['Self-employment tax','Payroll tax','Value-added tax','Capital gains tax'],ans:0,exp:'Self-employment tax (15.3%) covers Social Security (12.4%) and Medicare (2.9%) taxes. Employees split these with their employer, but self-employed persons pay both halves.'},
+{id:106,cat:'tax',diff:'medium',q:'For tax purposes, tangible personal property is subject to depreciation if:',opts:['It is used in a trade or business','Its useful life is greater than one year','It is held for production of income','All of the above'],ans:3,exp:'Depreciation is available when property meets all three criteria: used in a business or for income production AND has a useful life greater than one year.'},
+{id:107,cat:'tax',diff:'medium',q:'The IRS defines a "long-term contract" (for tax purposes) as:',opts:['A contract not completed by end of the tax year in which it began','A contract not completed within 12 months from the start date','A contract not completed within five years from start','A contract not completed within ten years from start'],ans:0,exp:'Under the Internal Revenue Code, a long-term contract is one that will not be completed within the tax year in which it began — triggering special accounting method requirements.'},
+{id:108,cat:'tax',diff:'hard',q:'The required accounting method for long-term construction contracts for tax purposes is generally:',opts:['Completed contract method','Percentage-of-completion method','Cash basis method','Modified accrual method'],ans:1,exp:'The percentage-of-completion method is generally required for long-term contracts — income is recognized as a percentage of work completed during the year, not when the contract is finished.'},
+{id:109,cat:'tax',diff:'medium',q:'Over what recovery period is construction equipment depreciated for tax purposes?',opts:['5 years','7 years','15 years','20 years'],ans:1,exp:'The IRS classifies most construction equipment (excavators, cranes, trucks) as 7-year property under MACRS depreciation schedules.'},
+{id:110,cat:'tax',diff:'hard',q:'Which of the following is an example of a deductible business expense on Schedule C?',opts:['Business insurance premiums','Equipment repair costs','Accounting fees','All of the above'],ans:3,exp:'All ordinary and necessary business expenses are deductible: insurance, repairs, professional fees, rent, utilities, vehicle expenses, and more are all valid Schedule C deductions.'},
+{id:111,cat:'tax',diff:'hard',q:'An LLC or corporation owner is NOT protected from personal liability for failure to pay:',opts:['Federal Unemployment Tax','State Unemployment Tax','The company\'s legal bills','Federal income tax withholding on employee wages'],ans:3,exp:'The "trust fund penalty" under IRC §6672 holds individuals personally liable for willful failure to remit federal income tax and FICA withholdings from employee paychecks — the corporate shield does not protect against this.'},
+
+// ---- RISK MANAGEMENT ----
+{id:112,cat:'risk',diff:'easy',q:'Which of the following incidents poses potential risk to a construction project?',opts:['Flooding','Cost increases','Miscalculation of time','All of the above'],ans:3,exp:'All three — natural disasters, cost overruns, and scheduling errors — are recognized construction project risks that must be identified and managed.'},
+{id:113,cat:'risk',diff:'medium',q:'A small GC avoids large commercial projects because it lacks the overhead or specialty trade knowledge. What risk strategy is this?',opts:['Risk Reduction','Risk Transfer','Risk Avoidance','Risk Acceptance'],ans:2,exp:'Risk Avoidance means eliminating the risk by not engaging in the risky activity. Here the GC avoids the risk of complex commercial work by staying within its expertise.'},
+{id:114,cat:'risk',diff:'easy',q:'Using builder\'s risk insurance to cover potential project damage during construction is what type of risk management strategy?',opts:['Risk Reduction','Risk Transfer','Risk Avoidance','Risk Acceptance'],ans:1,exp:'Transferring risk to an insurer through an insurance policy is the classic Risk Transfer strategy — the financial consequences shift from the contractor to the insurance company.'},
+{id:115,cat:'risk',diff:'medium',q:'Which risks should be handled FIRST?',opts:['High impact, low probability','High impact, high probability','Low impact, high probability','Low impact, low probability'],ans:1,exp:'Priority goes to risks that are both likely to occur AND would have significant impact. High impact + high probability = most urgent risk requiring immediate mitigation.'},
+{id:116,cat:'risk',diff:'medium',q:'What is a contractual way for a GC to transfer risk to a subcontractor?',opts:['Self-insurance','Builder\'s Risk insurance','Indemnification clause','Warranty'],ans:2,exp:'An indemnification clause (hold harmless agreement) contractually shifts liability from the GC to the subcontractor for claims arising from the sub\'s work.'},
+{id:117,cat:'risk',diff:'hard',q:'What are the two main factors in prioritizing risks?',opts:['Cost and schedule impact','Probability of occurring and potential impact on the business','Whether the risk is financial or safety-related','Whether the risk has occurred before'],ans:1,exp:'Risk prioritization uses a matrix of probability × impact. A risk with low probability but catastrophic impact may still outrank a high-probability low-impact risk.'},
+
+// ---- SAFETY ----
+{id:118,cat:'safety',diff:'easy',q:'What certifications are available for construction professionals in workplace safety?',opts:['LEED','OSHA 10 and OSHA 30','JSA certification','EPA 30'],ans:1,exp:'OSHA 10 and OSHA 30 are industry-standard safety training certifications. OSHA 10 is 10 hours of general safety training; OSHA 30 is 30 hours for supervisors and management.'},
+{id:119,cat:'safety',diff:'medium',q:'What is acceptable under OSHA for working in an excavated trench at 5 feet or greater?',opts:['A ladder for access in and out is all that is required','Use respirator and air monitoring (confined space)','Installation of a trench box or sloping the trench','A minimum of two workers in the trench'],ans:2,exp:'OSHA requires cave-in protection for trenches 5 feet or deeper — either a trench box (shield), sloping/benching, or shoring. A ladder alone is not sufficient protection.'},
+{id:120,cat:'safety',diff:'medium',q:'How often must temporary fire extinguishers on active construction sites be inspected?',opts:['Twice per year','Once per year','Monthly','Every two years'],ans:2,exp:'OSHA 29 CFR 1926.150 requires portable fire extinguishers on construction sites to be inspected at least monthly and maintained annually.'},
+{id:121,cat:'safety',diff:'medium',q:'At a minimum, how far must scaffolding be kept from energized electric lines?',opts:['5 feet','10 feet','15 feet','20 feet'],ans:1,exp:'OSHA 29 CFR 1926.451 requires scaffolds to be erected and maintained at least 10 feet away from energized power lines.'},
+{id:122,cat:'safety',diff:'hard',q:'What formula does OSHA use to confirm a scaffold is safely constructed?',opts:['It will hold 10× the maximum intended load','It will hold 5× the minimum intended load','It will hold its own weight + 10× the intended load','It will hold its own weight + 4× the intended load'],ans:3,exp:'OSHA requires scaffolds to be capable of supporting their own weight plus at least four times the maximum intended load — this ensures a 4:1 safety factor.'},
+{id:123,cat:'safety',diff:'easy',q:'What does Lockout/Tagout (LOTO) prevent?',opts:['Equipment theft on job sites','Electrocution and injury from unexpected energization of equipment during maintenance','Falls from elevated surfaces','Exposure to hazardous chemicals'],ans:1,exp:'LOTO procedures ensure machines are properly shut off and cannot be accidentally restarted during maintenance, preventing electrocution and other serious injuries.'},
+{id:124,cat:'safety',diff:'medium',q:'What are building occupancy classifications?',opts:['A system characterizing structures based on designated usage','A final inspection for a certificate of occupancy','An outline for determining total project cost','A method to define projects by size and cost'],ans:0,exp:'Occupancy classifications (per IBC) define a building\'s use (A=Assembly, B=Business, E=Educational, etc.) and determine fire safety, egress, construction type, and code requirements.'},
+{id:125,cat:'safety',diff:'medium',q:'Containers on a jobsite storing hazardous substances must be:',opts:['Located in a fenced area','Stored in lockboxes','Labeled with a product identity and hazard warning','Inaccessible to all but limited contractors'],ans:2,exp:'OSHA\'s Hazard Communication Standard (29 CFR 1926.59) requires all hazardous chemical containers to be labeled with the product identity and appropriate hazard warnings.'},
+{id:126,cat:'safety',diff:'easy',q:'What is a Job Safety Analysis (JSA)?',opts:['An OSHA form for reporting injuries','A financial analysis of safety-related costs','A process breaking a job into steps to identify and mitigate hazards for each step','A review of a contractor\'s safety record before hiring'],ans:2,exp:'A JSA breaks each task into sequential steps, identifies potential hazards in each step, and documents controls to eliminate or reduce those hazards before work begins.'},
+{id:127,cat:'safety',diff:'medium',q:'What does a UL fire resistance rating indicate for building materials?',opts:['The time a material can perform its function while exposed to fire','How much heat a material can absorb','How fast a material ignites','The fire suppression rating of the material'],ans:0,exp:'A UL fire resistance rating (in hours) indicates how long a building material or assembly can maintain structural integrity and contain fire when exposed to standardized test conditions.'},
+
+// ---- ENVIRONMENTAL LAW ----
+{id:128,cat:'environmental',diff:'easy',q:'What does CERCLA (Superfund) hold contractors responsible for?',opts:['OSHA violations on federal projects','Cleanup costs for release of hazardous substances at contaminated sites','Filing environmental impact statements','Compliance with stormwater permits'],ans:1,exp:'CERCLA (Comprehensive Environmental Response, Compensation, and Liability Act) imposes strict, joint, and several liability on parties responsible for releasing hazardous substances at contaminated sites.'},
+{id:129,cat:'environmental',diff:'medium',q:'What is a SWPPP (Stormwater Pollution Prevention Plan)?',opts:['A safety plan for work near rivers','A plan documenting best management practices to prevent stormwater runoff from carrying pollutants off a construction site','A plan for waterproofing below-grade construction','An EPA permit for wetland construction'],ans:1,exp:'A SWPPP is required under the Clean Water Act for construction sites disturbing 1 or more acres. It documents erosion control measures and stormwater management practices.'},
+{id:130,cat:'environmental',diff:'medium',q:'Which federal law regulates the disposal of hazardous waste?',opts:['CERCLA','RCRA (Resource Conservation and Recovery Act)','Clean Air Act','NEPA'],ans:1,exp:'RCRA regulates the management and disposal of hazardous and solid waste, establishing a "cradle to grave" tracking system for hazardous materials.'},
+{id:131,cat:'environmental',diff:'easy',q:'What is asbestos abatement in construction?',opts:['A process for removing and properly disposing of asbestos-containing materials','A method for testing concrete strength','The removal of lead paint from older buildings','An OSHA training certification'],ans:0,exp:'Asbestos abatement is the removal, encapsulation, or enclosure of asbestos-containing materials (ACMs) found in older buildings, following strict EPA and OSHA regulations.'},
+{id:132,cat:'environmental',diff:'hard',q:'What federal law requires an Environmental Impact Statement (EIS) for major federal actions significantly affecting the environment?',opts:['CERCLA','Clean Water Act','NEPA (National Environmental Policy Act)','RCRA'],ans:2,exp:'NEPA requires federal agencies to assess the environmental effects of their proposed actions before making decisions. Major projects require a full Environmental Impact Statement.'},
+
+// ---- HOUSING REGULATIONS ----
+{id:133,cat:'housing',diff:'medium',q:'What is the Fair Housing Act?',opts:['A federal law setting minimum construction standards for housing','A federal law prohibiting housing discrimination based on race, color, national origin, religion, sex, disability, and familial status','A state law governing rental rates','A federal law regulating mortgage lending practices'],ans:1,exp:'The Fair Housing Act (1968) prohibits discrimination in the sale, rental, and financing of housing based on protected characteristics.'},
+{id:134,cat:'housing',diff:'easy',q:'What is a Certificate of Occupancy (CO)?',opts:['A document certifying a contractor\'s license is active','A formal certificate issued by the local authority confirming a building complies with codes and is safe for occupancy','A certificate of insurance for a construction project','A document certifying a property\'s title is clear'],ans:1,exp:'A CO is issued after all inspections pass and the building meets code requirements. It certifies the building is legal to occupy and is typically required for new construction and major renovations.'},
+{id:135,cat:'housing',diff:'medium',q:'What does the Americans with Disabilities Act (ADA) require of commercial buildings?',opts:['That all buildings have ramps and elevators','That newly constructed and significantly renovated commercial buildings be accessible to people with disabilities','That all employees with disabilities receive accommodations','That residential buildings have accessible routes'],ans:1,exp:'ADA Title III requires new construction and renovations of commercial facilities and public accommodations to be readily accessible and usable by people with disabilities.'},
+{id:136,cat:'housing',diff:'medium',q:'What is a setback requirement?',opts:['A penalty for construction delays','The minimum distance a structure must be from property lines, streets, or other features per local zoning ordinances','A requirement to install a fire-rated assembly','A distance requirement for scaffolding from power lines'],ans:1,exp:'Setback requirements (established by local zoning) mandate minimum distances between buildings and property lines, streets, waterways, or other structures.'},
+
+// ---- BUSINESS MATH ----
+{id:137,cat:'math',diff:'medium',q:'A contractor calculates the area of a 24 ft × 36 ft floor to determine how many 12"×12" tiles are needed. How many tiles are required?',opts:['60 tiles','864 tiles','600 tiles','720 tiles'],ans:1,exp:'Area = 24 × 36 = 864 sq ft. Each 12"×12" tile = 1 sq ft. Therefore 864 tiles are needed (before waste factor).'},
+{id:138,cat:'math',diff:'hard',q:'A GC bids a project with a $400,000 cost estimate. He wants a 15% gross margin on the selling price. What should the bid price be?',opts:['$460,000','$470,588','$480,000','$476,190'],ans:1,exp:'If margin = 15% of selling price, then cost = 85% of price. Price = $400,000 ÷ 0.85 = $470,588. Note: this is different from a 15% markup ($400K × 1.15 = $460K).'},
+{id:139,cat:'math',diff:'medium',q:'How many cubic yards of concrete are in a slab 20 ft × 30 ft × 4 inches thick?',opts:['7.4 cu yds','200 cu yds','600 cu yds','22.2 cu yds'],ans:0,exp:'Volume = 20 × 30 × (4/12) = 200 cu ft. Convert to cu yds: 200 ÷ 27 = 7.41 cu yds.'},
+{id:140,cat:'math',diff:'hard',q:'A project has a contract value of $500,000. After completing 60% of the work, the contractor has billed $280,000. Is the contractor overbilled or underbilled?',opts:['Overbilled by $20,000 — billed $280K but earned $300K','Underbilled by $20,000 — earned $300K but only billed $280K','Overbilled by $80,000','Neither — billing matches progress'],ans:1,exp:'60% of $500K = $300K earned. Billed $280K. The contractor is underbilled by $20K — they\'ve done more work than they\'ve invoiced.'},
+{id:141,cat:'math',diff:'medium',q:'A contractor applies 10% overhead and 10% profit to total direct costs. If direct costs are $200,000, what is the bid price?',opts:['$220,000','$240,000','$242,000','$260,000'],ans:2,exp:'Direct costs: $200,000. Add 10% overhead = $220,000. Add 10% profit on that total = $220,000 × 1.10 = $242,000.'},
+{id:142,cat:'math',diff:'hard',q:'Retainage is 10% on a $750,000 contract. After 3 progress billings totaling $600,000, how much retainage has been withheld?',opts:['$75,000','$60,000','$150,000','$120,000'],ans:1,exp:'Retainage is withheld on amounts billed, not the total contract. 10% × $600,000 billed = $60,000 withheld.'},
+
+// ---- PUBLIC WORKS ----
+{id:143,cat:'public-works',diff:'medium',q:'What is the key difference between public and private construction contracting?',opts:['Public work pays higher wages','Public contracts require competitive bidding and are subject to more government regulations and transparency requirements','Private work has stricter quality standards','Public work does not require licensed contractors'],ans:1,exp:'Public work requires sealed competitive bidding (in most cases), prevailing wages, certified payrolls, and greater transparency. Private work affords owners more flexibility in contractor selection.'},
+{id:144,cat:'public-works',diff:'easy',q:'On a federal public project, what document must a contractor file to certify wages paid to workers?',opts:['A W-2 form','A certified payroll (WH-347 form)','A SWPPP report','A DBE utilization report'],ans:1,exp:'Federal public projects under Davis-Bacon require contractors to submit weekly certified payroll reports (WH-347) verifying that prevailing wages were paid to each worker.'},
+{id:145,cat:'public-works',diff:'medium',q:'What is a Disadvantaged Business Enterprise (DBE) requirement on federal projects?',opts:['A requirement that the GC be a minority-owned business','A federal program requiring a percentage of federally funded contract work to be subcontracted to certified minority/woman/disadvantaged-owned businesses','A licensing requirement for small businesses bidding on federal work','A financial assistance program for small GCs'],ans:1,exp:'DBE programs (required by USDOT and other agencies) establish goals for subcontracting to certified disadvantaged, minority-owned, and women-owned businesses on federally assisted projects.'},
+
+// ---- QUALITY CONTROL ----
+{id:146,cat:'quality',diff:'easy',q:'What does a quality control plan ensure?',opts:['That the project is completed ahead of schedule','That the craftsmanship of construction meets the standards established in the contract','That all subcontractors are paid on time','That the project stays within budget'],ans:1,exp:'A QC plan establishes processes for inspection and testing to ensure all work meets contract requirements and applicable codes and standards.'},
+{id:147,cat:'quality',diff:'medium',q:'Why should the quality control manager be independent from the field supervisor?',opts:['To create healthy competition','To achieve division of labor efficiencies','To avoid conflicts of interest in self-reporting deficiencies','To produce more creative ideas'],ans:2,exp:'Independence prevents a field supervisor from overlooking or minimizing deficiencies in their own work. An independent QC manager provides objective review.'},
+{id:148,cat:'quality',diff:'medium',q:'What is a "blower door test"?',opts:['A test measuring air pressure inside ductwork','A test checking overall building tightness by pressurizing the building to detect air leaks','An HVAC system balancing test','A test for radon levels in a building'],ans:1,exp:'A blower door test pressurizes or depressurizes a building to measure air infiltration rates, revealing leaky openings and helping optimize building envelope energy performance.'},
+{id:149,cat:'quality',diff:'hard',q:'What is used to confirm design pile strength on site in deep foundation work prior to installation?',opts:['Static load test','Pre-drilling test','Compression strength test','Geotechnical report and boring log'],ans:0,exp:'A static load test (pile load test) physically loads a test pile to confirm actual bearing capacity matches design assumptions before production piles are installed.'},
+{id:150,cat:'quality',diff:'medium',q:'For above-grade concrete block construction, which mortar type is recommended for general use?',opts:['Type S','Type E','Type N','Type O'],ans:2,exp:'Type N mortar is a medium-strength general-purpose mortar recommended for above-grade exterior and interior load-bearing walls. Type S is used below grade or in high-stress applications.'},
+{id:151,cat:'quality',diff:'medium',q:'When installing finished millwork or cabinetry, how long must the product acclimate to field conditions before installation?',opts:['No time needed','24 hours','48 hours','72 hours'],ans:2,exp:'Finished millwork and cabinetry must acclimate for 48 hours to the temperature and humidity conditions of the space before installation to prevent warping, swelling, or shrinking after install.'},
+{id:152,cat:'quality',diff:'medium',q:'What material is used to slow the rate at which water vapor travels through a building assembly?',opts:['Vapor retarder','Rigid insulation','Spray foam insulation','Radiant-heat barrier'],ans:0,exp:'A vapor retarder (vapor barrier) is a material with low vapor permeability used to control moisture diffusion through walls, roofs, and floors, reducing condensation and mold risk.'},
+{id:153,cat:'quality',diff:'hard',q:'When placing concrete from multiple trucks in a large pour, what is the general guideline for maximum wait time before discharging?',opts:['30 minutes','60 minutes','90 minutes','120 minutes'],ans:2,exp:'ASTM C94 generally limits concrete mix drum rotations and establishes that concrete should be discharged within 90 minutes (or 300 drum revolutions) after water is added, whichever comes first.'},
+
+// ---- ADDITIONAL HIGH-VALUE QUESTIONS ----
+{id:154,cat:'contracts',diff:'hard',q:'What is a "pay-when-paid" clause?',opts:['A clause requiring the GC to pay subs only when the GC is paid by the owner','A clause setting a maximum payment deadline','A clause requiring payment in installments','A clause setting payment terms for disputed invoices'],ans:0,exp:'Pay-when-paid clauses condition the GC\'s obligation to pay subs on first receiving payment from the owner. Courts treat these differently — some states disallow them for being contrary to public policy.'},
+{id:155,cat:'safety',diff:'hard',q:'Under OSHA 1926 Subpart M, at what height is fall protection required for construction workers on a walking/working surface?',opts:['4 feet','6 feet','8 feet','10 feet'],ans:1,exp:'OSHA\'s construction fall protection standard requires fall protection for employees working at heights of 6 feet or more above a lower level (1926.502).'},
+{id:156,cat:'estimating',diff:'hard',q:'What is the difference between a markup and a margin on a construction estimate?',opts:['They are the same thing','Markup is calculated on cost; margin (gross profit) is calculated on the selling price','Markup is calculated on selling price; margin is calculated on cost','Markup includes overhead; margin does not'],ans:1,exp:'A 20% markup on $100 cost = $120 selling price ($20/$100). A 20% margin on selling price means the cost is $80 and the selling price is $100 ($20/$100 selling price). They yield different prices.'},
+{id:157,cat:'project-mgmt',diff:'hard',q:'What is the difference between Design-Bid-Build and Design-Build project delivery?',opts:['In D-B-B, the GC provides both design and construction; in D-B, the architect leads the team','In D-B-B, the owner hires separate design and construction teams; in D-B, one entity provides both design and construction','In D-B, the owner bids the project; in D-B-B, the GC selects the design team','There is no meaningful difference'],ans:1,exp:'D-B-B (most common) separates design and construction contracts. D-B uses a single contract entity responsible for both, streamlining coordination but reducing owner oversight of design.'},
+{id:158,cat:'accounting',diff:'hard',q:'What is the Percentage of Completion method of accounting?',opts:['Revenue is recognized only when the project is complete','Revenue is recognized proportionally to the work completed each period','Revenue is recognized when payments are received','Revenue is recognized based on costs incurred, regardless of work completed'],ans:1,exp:'Under the percentage of completion method, revenue and profit are recognized in proportion to how much of the project has been completed each accounting period. It is the required method for most long-term contracts.'},
+{id:159,cat:'bonding',diff:'hard',q:'What is an "occurrence-based" vs. "claims-made" general liability policy?',opts:['Occurrence covers events that happen during the policy period, regardless of when the claim is filed; claims-made only covers claims filed during the policy period','Claims-made covers any event regardless of when it occurred; occurrence only covers events while the policy is active','They are the same thing','Occurrence is for property damage only; claims-made is for bodily injury only'],ans:0,exp:'Occurrence policies cover incidents that happen during the policy period even if the claim is filed years later. Claims-made policies only cover claims filed while the policy is active — they require "tail" coverage after expiration.'},
+{id:160,cat:'licensing',diff:'hard',q:'A contractor completes work without a license in a state that requires one. Which of the following consequences may apply?',opts:['The contractor may not be able to recover payment for work done','The contractor may be unable to enforce a mechanic\'s lien','Both a and b, plus possible criminal liability in some states','No consequences — licensing is only required before starting work'],ans:2,exp:'Unlicensed contractors risk: inability to recover payment for services, inability to file mechanic\'s liens, and in many states, criminal liability for contracting without a license.'},
+{id:161,cat:'project-mgmt',diff:'medium',q:'What is a submittal log?',opts:['A log tracking all RFIs submitted to the architect','A log tracking all material submittals (shop drawings, product data, samples) and their approval status','A log of all change orders on the project','A log tracking punch list items'],ans:1,exp:'The submittal log is created at the start of construction to track which products have been submitted for engineer/architect approval before ordering and installation.'},
+{id:162,cat:'safety',diff:'medium',q:'What does "confined space" mean under OSHA regulations in construction?',opts:['Any space under 100 sq ft','A space large enough to bodily enter, with limited means of entry/exit, and not designed for continuous occupancy','Any underground space','Any space requiring a ladder to enter'],ans:1,exp:'A confined space (per OSHA 29 CFR 1926 Subpart AA) is large enough to work in, has limited entry/exit, and is not designed for continuous occupation. Permit-required confined spaces have serious hazard potential.'},
+{id:163,cat:'environmental',diff:'medium',q:'What is a "Phase I Environmental Site Assessment"?',opts:['A soil sample testing for hazardous substances','A review of historical records, regulatory databases, and site reconnaissance to identify potential environmental contamination (no sampling)','A full remediation plan for contaminated soil','An EPA-required assessment before any demolition work'],ans:1,exp:'A Phase I ESA is a non-invasive desktop review and site walk identifying "Recognized Environmental Conditions" (RECs). If RECs are found, a Phase II (sampling) is recommended.'},
+{id:164,cat:'risk',diff:'medium',q:'What is an indemnification clause and what risk does it transfer?',opts:['A clause transferring payment risk to the owner','A hold-harmless provision where one party (indemnitor) agrees to bear legal liability on behalf of another (indemnitee)','A clause limiting the GC\'s total liability on the project','A clause requiring insurance certificates from all subs'],ans:1,exp:'Indemnification transfers the risk of third-party claims. For example, a sub agrees to indemnify the GC from claims arising from the sub\'s negligent work — the sub bears the legal and financial burden.'},
+{id:165,cat:'math',diff:'hard',q:'A project has an original contract of $1,000,000. Three approved change orders total $85,000. The adjusted contract value is $1,085,000. The contractor has billed $750,000 and the retainage is 5%. What is the net amount paid to the contractor to date?',opts:['$712,500','$750,000','$1,085,000','$800,000'],ans:0,exp:'5% retainage on $750,000 billed = $37,500 withheld. Net paid = $750,000 − $37,500 = $712,500.'},
+{id:166,cat:'bonding',diff:'medium',q:'What is the difference between a performance bond and a payment bond?',opts:['They are the same bond with different names','A performance bond guarantees contract completion; a payment bond guarantees payment to subs and suppliers','A performance bond covers workers; a payment bond covers the owner','A performance bond is required; a payment bond is optional'],ans:1,exp:'Performance bonds protect the owner if the GC defaults on completing the work. Payment bonds (required on most public projects per the Miller Act) protect subs and suppliers from nonpayment.'},
+{id:167,cat:'contracts',diff:'medium',q:'What does the Miller Act require on federal construction projects over $150,000?',opts:['Prevailing wages for all workers','Both a performance bond and a payment bond','Certified payroll reports','DBE subcontracting goals'],ans:1,exp:'The Miller Act (40 U.S.C. §3131) requires prime contractors on federal construction projects exceeding $150,000 to obtain both a performance bond and a payment bond.'},
+{id:168,cat:'housing',diff:'hard',q:'What is the IECC (International Energy Conservation Code)?',opts:['An international standard for earthquake-resistant building design','A model code adopted by states establishing minimum energy efficiency requirements for buildings','A code governing high-rise construction','An international standard for fire-resistant construction'],ans:1,exp:'The IECC establishes minimum energy efficiency standards for building envelopes, HVAC, lighting, and water heating. It is adopted (with amendments) by most states.'},
+{id:169,cat:'estimating',diff:'medium',q:'What does a Unit Price contract mean for quantities?',opts:['The scope is fully defined and quantities are fixed','The scope is known but exact quantities may vary — payment is based on actual quantities installed at agreed unit prices','Cost is open-ended with no fixed quantities or scope','The contractor is paid time and materials'],ans:1,exp:'Unit price contracts are common in civil construction (roads, utilities) where the scope is known but exact quantities (linear feet, cubic yards) will be measured and paid at agreed per-unit rates.'},
+{id:170,cat:'safety',diff:'easy',q:'What is OSHA\'s purpose?',opts:['To set minimum wage standards for construction workers','To ensure safe and healthful working conditions by setting and enforcing standards and providing training','To regulate construction licensing requirements','To manage workers\' compensation claims'],ans:1,exp:'OSHA (Occupational Safety and Health Administration) is the federal agency charged with assuring safe and healthful working conditions by enforcing standards, conducting inspections, and providing outreach.'},
+];
+
+// ============================================================
+// APP STATE
+// ============================================================
+let settings = { count: 10, diff: 'all', cats: ['all'] };
+let sessionStats = JSON.parse(localStorage.getItem('gcCramStats') || '{"bestScore":0,"runs":0,"usedIds":[]}');
+let quizState = {};
+
+// ============================================================
+// SETUP SCREEN
+// ============================================================
+function updateStatsBar() {
+  document.getElementById('sessionBest').textContent = sessionStats.bestScore > 0 ? sessionStats.bestScore + '%' : '—';
+  document.getElementById('totalRuns').textContent = sessionStats.runs;
+}
+updateStatsBar();
+
+document.querySelectorAll('#countGroup .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#countGroup .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    settings.count = parseInt(c.dataset.val);
+  });
+});
+
+document.querySelectorAll('#diffGroup .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#diffGroup .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    settings.diff = c.dataset.val;
+  });
+});
+
+document.querySelectorAll('#catGroup .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    if (c.dataset.val === 'all') {
+      document.querySelectorAll('#catGroup .chip').forEach(x => x.classList.remove('cat-active'));
+      c.classList.add('cat-active');
+      settings.cats = ['all'];
+    } else {
+      const allChip = document.querySelector('#catGroup .chip[data-val="all"]');
+      allChip.classList.remove('cat-active');
+      c.classList.toggle('cat-active');
+      const active = [...document.querySelectorAll('#catGroup .chip.cat-active')].map(x => x.dataset.val);
+      settings.cats = active.length === 0 ? ['all'] : active;
+      if (settings.cats.length === 0) {
+        allChip.classList.add('cat-active');
+        settings.cats = ['all'];
+      }
+    }
+  });
+});
+
+function showSetup() {
+  document.getElementById('setup').style.display = 'flex';
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  updateStatsBar();
+}
+
+// ============================================================
+// QUIZ LOGIC
+// ============================================================
+const CAT_LABELS = {
+  'licensing':'Licensing','estimating':'Estimating & Bidding','liens':'Liens',
+  'accounting':'Accounting','bonding':'Bonding & Insurance','labor':'Personnel & Labor',
+  'project-mgmt':'Project Management','contracts':'Contracts','business-org':'Business Organizations',
+  'tax':'Tax','risk':'Risk Management','safety':'Safety','environmental':'Environmental Law',
+  'housing':'Housing Regulations','math':'Business Math','public-works':'Public Works','quality':'Quality Control'
+};
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  // Filter pool
+  let pool = ALL_QUESTIONS.filter(q => {
+    const diffOk = settings.diff === 'all' || q.diff === settings.diff;
+    const catOk = settings.cats.includes('all') || settings.cats.includes(q.cat);
+    return diffOk && catOk;
+  });
+
+  // Prefer unseen questions
+  const unseen = pool.filter(q => !sessionStats.usedIds.includes(q.id));
+  const seen = pool.filter(q => sessionStats.usedIds.includes(q.id));
+  let ordered = [...shuffle(unseen), ...shuffle(seen)];
+
+  if (ordered.length < settings.count) {
+    // Reset seen if not enough questions
+    sessionStats.usedIds = [];
+    ordered = shuffle(pool);
+  }
+
+  const selected = ordered.slice(0, settings.count);
+
+  quizState = {
+    questions: selected,
+    current: 0,
+    correct: 0,
+    wrong: 0,
+    streak: 0,
+    bestStreak: 0,
+    answered: [],
+    missedQs: []
+  };
+
+  // Randomize answer order per question
+  quizState.questions = quizState.questions.map(q => {
+    const shuffledOpts = shuffle(q.opts.map((o, i) => ({ text: o, origIdx: i })));
+    const newAns = shuffledOpts.findIndex(o => o.origIdx === q.ans);
+    return { ...q, displayOpts: shuffledOpts.map(o => o.text), displayAns: newAns };
+  });
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('quiz').style.display = 'flex';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizState.questions[quizState.current];
+  const total = quizState.questions.length;
+  const idx = quizState.current;
+
+  document.getElementById('qCounter').textContent = `Question ${idx + 1} / ${total}`;
+  document.getElementById('progressFill').style.width = `${(idx / total) * 100}%`;
+  document.getElementById('scoreCorrect').textContent = quizState.correct;
+  document.getElementById('scoreWrong').textContent = quizState.wrong;
+
+  const streak = quizState.streak;
+  const streakPill = document.getElementById('streakPill');
+  if (streak >= 2) { streakPill.style.display = 'inline'; streakPill.textContent = `🔥 ${streak}`; }
+  else streakPill.style.display = 'none';
+
+  document.getElementById('catTag').innerHTML = `${CAT_LABELS[q.cat] || q.cat} <span class="diff-tag diff-${q.diff}">${q.diff}</span>`;
+  document.getElementById('questionText').textContent = q.q;
+  document.getElementById('feedbackDiv').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+
+  const letters = ['A', 'B', 'C', 'D'];
+  const optDiv = document.getElementById('optionsDiv');
+  optDiv.innerHTML = '';
+  (q.displayOpts || q.opts).forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}.</span><span>${opt}</span>`;
+    btn.addEventListener('click', () => selectAnswer(i, btn));
+    optDiv.appendChild(btn);
+  });
+}
+
+function selectAnswer(chosen, clickedBtn) {
+  const q = quizState.questions[quizState.current];
+  const correctIdx = q.displayAns !== undefined ? q.displayAns : q.ans;
+  const allBtns = document.querySelectorAll('.option-btn');
+
+  allBtns.forEach(b => b.disabled = true);
+
+  const isCorrect = chosen === correctIdx;
+  const feedbackDiv = document.getElementById('feedbackDiv');
+
+  if (isCorrect) {
+    clickedBtn.classList.add('correct');
+    quizState.correct++;
+    quizState.streak++;
+    quizState.bestStreak = Math.max(quizState.bestStreak, quizState.streak);
+    feedbackDiv.innerHTML = `<div class="feedback-box feedback-correct"><strong>✓ Correct!</strong>${q.exp}</div>`;
+  } else {
+    clickedBtn.classList.add('wrong');
+    allBtns[correctIdx].classList.add('reveal');
+    quizState.wrong++;
+    quizState.streak = 0;
+    const chosenText = (q.displayOpts || q.opts)[chosen];
+    const correctText = (q.displayOpts || q.opts)[correctIdx];
+    feedbackDiv.innerHTML = `<div class="feedback-box feedback-wrong"><strong>✗ Incorrect — you chose "${chosenText}"</strong>Correct answer: <strong style="color:var(--green)">"${correctText}"</strong><br><br>${q.exp}</div>`;
+    quizState.missedQs.push({ q: q.q, correct: correctText, chosen: chosenText });
+  }
+
+  quizState.answered.push({ id: q.id, correct: isCorrect });
+
+  // Update score display
+  document.getElementById('scoreCorrect').textContent = quizState.correct;
+  document.getElementById('scoreWrong').textContent = quizState.wrong;
+  const streakPill = document.getElementById('streakPill');
+  if (quizState.streak >= 2) { streakPill.style.display = 'inline'; streakPill.textContent = `🔥 ${quizState.streak}`; }
+  else streakPill.style.display = 'none';
+
+  document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('nextBtn').textContent = quizState.current < quizState.questions.length - 1 ? 'Next Question →' : 'See Results →';
+}
+
+function nextQuestion() {
+  quizState.current++;
+  if (quizState.current >= quizState.questions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function quitQuiz() {
+  if (quizState.answered && quizState.answered.length > 0) {
+    showResults();
+  } else {
+    showSetup();
+  }
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+function showResults() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').style.display = 'flex';
+
+  const total = quizState.answered.length;
+  const correct = quizState.correct;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const passed = pct >= 70;
+
+  // Update session stats
+  sessionStats.runs++;
+  if (pct > sessionStats.bestScore) sessionStats.bestScore = pct;
+  quizState.answered.forEach(a => {
+    if (!sessionStats.usedIds.includes(a.id)) sessionStats.usedIds.push(a.id);
+  });
+  // Keep usedIds from growing too large
+  if (sessionStats.usedIds.length > ALL_QUESTIONS.length * 0.8) sessionStats.usedIds = [];
+  localStorage.setItem('gcCramStats', JSON.stringify(sessionStats));
+
+  document.getElementById('resultsTitle').textContent = passed ? '🎉 Great Run!' : 'Keep Studying!';
+  document.getElementById('gradePct').textContent = pct + '%';
+  document.getElementById('gradeLabel').textContent = passed ? 'PASS' : 'FAIL';
+  const circle = document.getElementById('gradeCircle');
+  circle.className = 'grade-circle ' + (passed ? 'grade-pass' : 'grade-fail');
+  document.getElementById('passMsg').textContent = passed
+    ? `You scored ${correct}/${total} — above the 70% passing threshold.`
+    : `You scored ${correct}/${total} — need 70% to pass. Review the missed items below.`;
+
+  document.getElementById('resCorrect').textContent = correct;
+  document.getElementById('resWrong').textContent = total - correct;
+  document.getElementById('resStreak').textContent = quizState.bestStreak;
+
+  // Category breakdown
+  const catMap = {};
+  quizState.questions.forEach((q, i) => {
+    if (!catMap[q.cat]) catMap[q.cat] = { correct: 0, total: 0 };
+    catMap[q.cat].total++;
+    if (quizState.answered[i] && quizState.answered[i].correct) catMap[q.cat].correct++;
+  });
+
+  let catHTML = '<h3>Category Breakdown</h3>';
+  Object.entries(catMap).sort((a,b) => (a[1].correct/a[1].total) - (b[1].correct/b[1].total)).forEach(([cat, data]) => {
+    const p = Math.round((data.correct / data.total) * 100);
+    const color = p >= 80 ? '#22c55e' : p >= 60 ? '#f59e0b' : '#ef4444';
+    catHTML += `<div class="cat-row">
+      <div class="cat-name">${CAT_LABELS[cat] || cat}</div>
+      <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${p}%;background:${color}"></div></div>
+      <div class="cat-pct" style="color:${color}">${p}%</div>
+    </div>`;
+  });
+  document.getElementById('catBreakdown').innerHTML = catHTML;
+
+  // Missed questions
+  if (quizState.missedQs.length > 0) {
+    let missedHTML = '<h3>Review Missed Questions</h3>';
+    quizState.missedQs.slice(0, 10).forEach(m => {
+      missedHTML += `<div class="missed-item">
+        <div class="missed-q">${m.q}</div>
+        <div class="missed-ans">✓ ${m.correct}</div>
+        <div class="missed-wrong">✗ Your answer: ${m.chosen}</div>
+      </div>`;
+    });
+    document.getElementById('missedSection').innerHTML = missedHTML;
+  } else {
+    document.getElementById('missedSection').innerHTML = '<h3>Missed Questions</h3><p style="color:var(--green);padding:12px 0">Perfect round — no mistakes!</p>';
+  }
+}
+</script>
+</body>
+</html>
